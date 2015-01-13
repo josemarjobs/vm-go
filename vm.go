@@ -7,7 +7,22 @@ const (
 	ADD
 	PRINT
 	HALT
+	JMPLT
 )
+
+type op struct {
+	name string
+	nargs int
+}
+
+var ops = map[int]op{
+	PUSH: op{"push", 1},
+	ADD: op{"add", 0},
+	HALT: op{"halt", 0},
+	PRINT: op{"print", 0},
+	JMPLT: op{"jmplt", 2},
+}
+
 type VM struct {
 	code []int
 	pc int
@@ -15,8 +30,18 @@ type VM struct {
 	stack []int
 	sp int
 }
+func (v *VM) trace() {
+	addr := v.pc
+	op := ops[v.code[v.pc]]
+	args := v.code[v.pc + 1: v.pc + op.nargs + 1]
+	stack := v.stack[0:v.sp+1]
 
+	fmt.Printf("%04d: %s \t%v \t %v\n", addr, op.name, args, stack)
+
+
+}
 func (v *VM) run(c []int) {
+
 	v.stack = make([]int, 100)
 	v.sp = -1
 
@@ -24,6 +49,7 @@ func (v *VM) run(c []int) {
 	v.pc = 0
 
 	for {
+		v.trace()
 		// Fetch
 		op := v.code[v.pc]
 		v.pc++
@@ -48,6 +74,15 @@ func (v *VM) run(c []int) {
 			val := v.stack[v.sp]
 			v.sp--
 			fmt.Println(val)
+		case JMPLT:
+			lt := v.code[v.pc]
+			v.pc++
+			addr := v.code[v.pc]
+			v.pc++
+
+			if v.stack[v.sp] < lt {
+				v.pc = addr
+			}
 		case HALT:
 			return;
 		}
@@ -58,6 +93,7 @@ func main() {
 		PUSH, 2,
 		PUSH, 3,
 		ADD,
+		JMPLT, 10, 2,
 		PRINT,
 		HALT,
 	}
